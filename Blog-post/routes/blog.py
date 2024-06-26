@@ -21,23 +21,24 @@ def blogs():
             cursor.execute("SELECT blog_id, blog FROM blogs WHERE blog_id IN (SELECT blog_id FROM connect WHERE user_id=?)", (user_id,))
             blogs = cursor.fetchall()
             return render_template("blog.html", blogs=blogs)
-        
-        blog = request.form.get("blog")
-        if not blog:
-            msg = "Error: No blog content provided."
-            return render_template("error.html", msg=msg)
-        
-        try:
-            cursor.execute("INSERT INTO blogs(blog) VALUES (?)", (blog,))
+
+        if request.method == "POST":
+            blog = request.form.get("blog")
+            if not blog:
+                msg = "Error: No blog content provided."
+                return render_template("error.html", msg=msg)
+            
+            try:
+                cursor.execute("INSERT INTO blogs(blog) VALUES (?)", (blog,))
+                cx.commit()
+            except sqlite3.IntegrityError:
+                cx.rollback()
+                return redirect("/view")
+            
+            cursor.execute("SELECT blog_id FROM blogs WHERE blog=?", (blog,))
+            blog_id = cursor.fetchone()[0]
+            cursor.execute("INSERT INTO connect(blog_id, user_id) VALUES (?, ?)", (blog_id, user_id))
             cx.commit()
-        except sqlite3.IntegrityError:
-            cx.rollback()
-            return redirect("/view")
-        
-        cursor.execute("SELECT blog_id FROM blogs WHERE blog=?", (blog,))
-        blog_id = cursor.fetchone()[0]
-        cursor.execute("INSERT INTO connect(blog_id, user_id) VALUES (?, ?)", (blog_id, user_id))
-        cx.commit()
 
     return redirect("/view")
 
@@ -45,19 +46,20 @@ def blogs():
 def edit(blog_id):
     if "username" not in session:
         return redirect("/signup")
-    
+        
     with get_db() as cx:
         cursor = cx.cursor()
         if request.method == "GET":
             cursor.execute("SELECT * FROM blogs WHERE blog_id = ?", (blog_id, ))
             blog = cursor.fetchone()
             return render_template("edit.html", blog=blog)
-        
-        edited = request.form.get("edited")
-        cursor.execute("UPDATE blogs SET blog = ? WHERE blog_id = ?", (edited, blog_id))
-        cx.commit()
-        flash("edited successfully!!")
-        return redirect("/blog")
+
+        if request.method == "POST":
+            edited = request.form.get("edited")
+            cursor.execute("UPDATE blogs SET blog = ? WHERE blog_id = ?", (edited, blog_id))
+            cx.commit()
+            flash("edited successfully!!")
+            return redirect("/blog")
     
 @blog_blueprint.route("/delete/<blog_id>")
 def delete(blog_id):
