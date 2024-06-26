@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for msg in messages %}
+                <p>{{msg}}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+
+    <form action="/blog" method="post">
+        <label for="blog">Blog:</label>
+        <input type="text" name="blog" placeholder="Blog">
+        <input type="submit" name="submit" id="submit" value="submit"><br>
+    </form>
+
+    <a href="/view"><sub>Blogs</sub></a>
+
+    {% if blogs %}
+        {% for blog in blogs %}
+            <p><h4>{{blog[1]}}</h4>
+                <a href="/edit/{{blog[0]}}">edit</a>
+                <a href="/delete/{{blog[0]}}">delete</a>
+            </p>
+        {% endfor %}
+        {% else %}
+            <p>No blogs here!!!</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}
